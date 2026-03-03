@@ -1,6 +1,17 @@
 const PB_KEY = 'schulte-pbs';
 const HISTORY_KEY = 'schulte-history';
 const HISTORY_MAX = 1000;
+const SETTINGS_KEY = 'schulte-settings';
+const SETTINGS_FIELDS = [
+    'gridSize', 'rounds', 'roundBreaks', 'showRounds', 'showTransitions',
+    'groupType', 'inverseCount', 'divergentCount', 'variousCounts', 'collateGroups', 'originalColors',
+    'spinTable', 'spinTableSpeed', 'noErrors', 'useClickSound', 'startOnClick',
+    'clearCorrect', 'showHover', 'showClickResult', 'showClickAnimation', 'showTrace', 'showCenterDot',
+    'shuffleSymbols', 'turnSymbols', 'spinSymbols',
+    'frenzyMode', 'frenzyCount', 'hideReact',
+    'hoverMode', 'blindMode', 'flashlightMode', 'mathMode', 'lettersMode', 'leftRightClick',
+    'tableSize', 'fontSize', 'nOffset',
+];
 
 function Cell(number) {
     this.number = number;
@@ -290,6 +301,12 @@ vueApp = new Vue({
     el: '#app',
     data: appData,
     created: function () {
+        const saved = JSON.parse(localStorage.getItem(SETTINGS_KEY));
+        if (saved) {
+            SETTINGS_FIELDS.forEach(function(k) {
+                if (k in saved) appData[k] = saved[k];
+            });
+        }
         this.initGame();
         this.clickSound = new Audio("js/bop.mp3");
         appData.personalBests =
@@ -387,6 +404,12 @@ vueApp = new Vue({
         nOffset: function() {
             setTimeout(() => document.getElementById('nOffset').focus(), 0);
         },
+        settingsSnapshot: {
+            deep: true,
+            handler: function(val) {
+                localStorage.setItem(SETTINGS_KEY, JSON.stringify(val));
+            },
+        },
     },
     computed: {
         clickedCell: function () {
@@ -399,6 +422,12 @@ vueApp = new Vue({
             set: function (cellIdx) {
                 this.hoverIndex = cellIdx;
             }
+        },
+        settingsSnapshot: function () {
+            var self = this;
+            var snap = {};
+            SETTINGS_FIELDS.forEach(function(k) { snap[k] = self[k]; });
+            return snap;
         },
         historyForCategory: function () {
             const cat = this.category();
