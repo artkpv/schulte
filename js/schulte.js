@@ -1,4 +1,6 @@
 const PB_KEY = 'schulte-pbs';
+const HISTORY_KEY = 'schulte-history';
+const HISTORY_MAX = 1000;
 
 function Cell(number) {
     this.number = number;
@@ -140,11 +142,11 @@ var appData = {
     clickIndex: -1,
     correctIndex: -1,
 
-    clearCorrect: true,
-    showHover: true,
+    clearCorrect: false,
+    showHover: false,
     showClickResult: true,
     showClickAnimation: true,
-    showTrace: true,
+    showTrace: false,
     showCenterDot: false,
     shuffleSymbols: false,
     turnSymbols: false,
@@ -160,7 +162,7 @@ var appData = {
     leftRightClick: false,
     lastClickButton: 0,
     tableSize: 600,
-    fontSize: 100,
+    fontSize: 60,
     nOffset: 0,
 
     mouseTracking: false,
@@ -176,10 +178,13 @@ var appData = {
     selectedTimerId: -1,
     gameTimerId: -1,
 
+    sessionHistory: [],
+
     dialogShowed: false,
     settingsTabVisible: true,
     statsTabVisible: false,
     mousemapTabVisible: false,
+    historyTabVisible: false,
     clickSound: false,
 
     stats: {
@@ -289,6 +294,8 @@ vueApp = new Vue({
         this.clickSound = new Audio("js/bop.mp3");
         appData.personalBests =
             JSON.parse(localStorage.getItem(PB_KEY)) || {};
+        appData.sessionHistory =
+            JSON.parse(localStorage.getItem(HISTORY_KEY)) || [];
     },
     mounted: function () {
         this.execDialog('settings');
@@ -392,7 +399,21 @@ vueApp = new Vue({
             set: function (cellIdx) {
                 this.hoverIndex = cellIdx;
             }
-        }
+        },
+        historyForCategory: function () {
+            const cat = this.category();
+            return this.sessionHistory.filter(function(r) { return r.category === cat; });
+        },
+        bestTimeForCategory: function () {
+            if (!this.historyForCategory.length) return '';
+            const best = Math.min.apply(null, this.historyForCategory.map(function(r) { return r.time; }));
+            return timeString(best);
+        },
+        avgTimeForCategory: function () {
+            if (!this.historyForCategory.length) return '';
+            const sum = this.historyForCategory.reduce(function(acc, r) { return acc + r.time; }, 0);
+            return timeString(sum / this.historyForCategory.length);
+        },
     },
     methods: {
         initGame: function () {
@@ -473,6 +494,36 @@ vueApp = new Vue({
                     JSON.stringify(this.personalBests),
                 );
             }
+            this.saveHistory();
+        },
+        saveHistory: function() {
+            const record = {
+                date: new Date().toISOString(),
+                category: this.category(),
+                time: this.stats.totalTime(),
+                correctClicks: this.stats.totalCorrectClicks(),
+                wrongClicks: this.stats.totalWrongClicks(),
+                rounds: parseInt(this.rounds),
+                gridSize: this.gridSize,
+            };
+            this.sessionHistory.unshift(record);
+            if (this.sessionHistory.length > HISTORY_MAX) {
+                this.sessionHistory = this.sessionHistory.slice(0, HISTORY_MAX);
+            }
+            localStorage.setItem(HISTORY_KEY, JSON.stringify(this.sessionHistory));
+        },
+        clearHistory: function() {
+            localStorage.removeItem(HISTORY_KEY);
+            this.sessionHistory = [];
+        },
+        formatDate: function(iso) {
+            return new Date(iso).toLocaleString(undefined, {
+                month: 'numeric', day: 'numeric',
+                hour: '2-digit', minute: '2-digit', second: '2-digit'
+            });
+        },
+        msToString: function(ms) {
+            return timeString(ms);
         },
         pbTimeString: function() {
             const pb = this.personalBests[this.category()];
@@ -860,11 +911,14 @@ vueApp = new Vue({
             this.statsTabVisible = false;
             this.settingsTabVisible = false;
             this.mousemapTabVisible = false;
+            this.historyTabVisible = false;
 
             if (tabName === 'stats') {
                 this.statsTabVisible = true;
             } else if (tabName === 'mousemap') {
                 this.mousemapTabVisible = true; // see 'updated' section
+            } else if (tabName === 'history') {
+                this.historyTabVisible = true;
             } else {
                 this.settingsTabVisible = true;
             }

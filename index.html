@@ -88,6 +88,11 @@
                             :class="[mousemapTabVisible ? 'w3-indigo w3-text-white w3-hover-indigo' : 'w3-light-grey w3-hover-white']">
                         Mouse Map
                     </button>
+                    <button class="tablink w3-bar-item w3-button"
+                            @click="changeDialogTab('history')"
+                            :class="[historyTabVisible ? 'w3-indigo w3-text-white w3-hover-indigo' : 'w3-light-grey w3-hover-white']">
+                        History
+                    </button>
                 </div>
 
                 <div class="w3-container w3-margin w3-padding-0" v-if="settingsTabVisible">
@@ -396,6 +401,36 @@
                             width="300" height="300"
                             ref="mousemap_canvas">
                     </canvas>
+                </div>
+
+                <div class="w3-container w3-margin" v-if="historyTabVisible">
+                    <h4>Category: {{ category() }}</h4>
+                    <table class="w3-table-all w3-small" v-if="historyForCategory.length">
+                        <tr><td>Games played</td><td>{{ historyForCategory.length }}</td></tr>
+                        <tr><td>Best time</td><td>{{ bestTimeForCategory }}</td></tr>
+                        <tr><td>Average time</td><td>{{ avgTimeForCategory }}</td></tr>
+                    </table>
+                    <p v-else class="w3-text-grey">No history for this category yet.</p>
+                    <div style="max-height:200px; overflow-y:auto; margin-top:8px" v-if="sessionHistory.length">
+                        <table class="w3-table-all w3-hoverable w3-small">
+                            <thead>
+                                <tr class="w3-light-grey">
+                                    <th>Date</th><th>Category</th><th>Time</th><th>&#10003;</th><th>&#10007;</th>
+                                </tr>
+                            </thead>
+                            <tr v-for="r in sessionHistory.slice(0,50)" :key="r.date"
+                                :class="{'w3-pale-green': r.category === category()}">
+                                <td>{{ formatDate(r.date) }}</td>
+                                <td>{{ r.category }}</td>
+                                <td>{{ msToString(r.time) }}</td>
+                                <td>{{ r.correctClicks }}</td>
+                                <td>{{ r.wrongClicks }}</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <button class="w3-btn w3-red w3-small"
+                            style="margin-top:8px"
+                            @click="clearHistory()">Clear History</button>
                 </div>
 
                 <footer class="w3-container w3-light-grey w3-center">
